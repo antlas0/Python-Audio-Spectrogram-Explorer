@@ -2,7 +2,7 @@
 
 
 > [!IMPORTANT]  
-> This is not the original PASE repository. This is a fork, which embeds customizations. For the original repository, refer to the initial forked repo.
+> This is not the original PASE repository. This is a fork, which embeds customizations. For the original repository, refer to the initial forked repo. Some features maybe broken. WIP.
 
 ## How to launch
 ```bash
@@ -225,5 +225,6 @@ Example result for the shapematching:
 Example result for the spectrogram correlation:
 
 ![autodetect3](screenshots/m5.JPG)
+
 
 
