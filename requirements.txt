@@ -1,0 +1,8 @@
+matplotlib
+scipy
+PyQt6
+soundfile
+pandas
+simpleaudio
+scikit-image
+moviepy
