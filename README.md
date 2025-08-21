@@ -1,4 +1,10 @@
-# How to launch
+# Python Audio Spectrogram Explorer (PASE)
+
+
+> [!IMPORTANT]  
+> This is not the original PASE repository. This is a fork, which embeds customizations. For the original repository, refer to the initial forked repo.
+
+## How to launch
 ```bash
 python -m pip install -r requirements.txt
 python main.py
@@ -219,4 +225,5 @@ Example result for the shapematching:
 Example result for the spectrogram correlation:
 
 ![autodetect3](screenshots/m5.JPG)
+
 
