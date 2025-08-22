@@ -977,6 +977,14 @@ class MainWindow(QtWidgets.QMainWindow):
                         start=0,
                         end=a.frames,
                     )
+                    if self.filename_timekey.text():
+                        try:
+                            ip.date = dt.datetime.strptime(
+                                os.path.basename(path),
+                                self.filename_timekey.text(),
+                            )
+                        except Exception as e:
+                            self.notify_message(f"Error parsing file timestamp: {e}")
                     self._input_data.append(ip)
                 else:
                     s = 0
@@ -1042,15 +1050,6 @@ class MainWindow(QtWidgets.QMainWindow):
             # if audiopath[-4:]=='.wav':
 
             self.read_soundfile(self._input_data[self._filepointer])
-
-            if self.filename_timekey.text():
-                try:
-                    self._input_data[self._filepointer].date = dt.datetime.strptime(
-                        os.path.basename(self.current_audiopath),
-                        self.filename_timekey.text(),
-                    )
-                except Exception as e:
-                    self.notify_message(f"Error parsing file timestamp: {e}")
 
             if self._input_data[self._filepointer].start > 0:
                 secoffset = (
