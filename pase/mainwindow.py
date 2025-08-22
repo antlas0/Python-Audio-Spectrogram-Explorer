@@ -1590,7 +1590,10 @@ class MainWindow(QtWidgets.QMainWindow):
         #        event.x, event.y, event.xdata, event.ydata))
         if event.button == 1 & event.dblclick:
             new_point = pd.DataFrame.from_dict({"Time_in_s": [event.xdata], "Frequency_in_Hz": [event.ydata], "audiofilename":[self._input_data[self._filepointer].filename]})
-            self._input_data[self._filepointer].drawing = pd.concat([self._input_data[self._filepointer].drawing, new_point], ignore_index=True)
+            if self._input_data[self._filepointer].drawing.empty:
+                self._input_data[self._filepointer].drawing = new_point
+            else:
+                self._input_data[self._filepointer].drawing = pd.concat([self._input_data[self._filepointer].drawing, new_point], ignore_index=True)
             self.f_limits = self.canvas.axes.get_ylim()
             self.t_limits = self.canvas.axes.get_xlim()
 
