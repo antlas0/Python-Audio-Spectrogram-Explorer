@@ -1835,6 +1835,10 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.play_obj.is_playing():
                 sa.stop_all()
             else:
+                if (lims := self.canvas.axes.get_xlim()):
+                    if int(lims[0]) == 0 and int(lims[1]) == 1:
+                        # no plot
+                        return
                 new_rate = 32000
                 t_limits = list(self.canvas.axes.get_xlim())
                 t_limits = list(
