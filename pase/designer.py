@@ -74,6 +74,7 @@ def populate_ui(parent):
     parent.fft_overlap.setCurrentIndex(3)
 
     parent.filename_timekey = QtWidgets.QLineEdit(parent)
+    parent.filename_timekey.textChanged.connect(parent.timekey_save_to_settings)
     # parent.filename_timekey.setText('aural_%Y_%m_%d_%H_%M_%S.wav')
 
     parent.playbackspeed = QtWidgets.QComboBox(parent)

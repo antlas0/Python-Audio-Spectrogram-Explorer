@@ -82,6 +82,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.setup_ui()
         self.setup()
+        self.filename_timekey.setText(self.settings.value("timekey", ""))
 
     def setup_ui(self):
         self.checkbox_logscale = QtWidgets.QCheckBox("Log. scale")
@@ -113,6 +114,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def notify_message(self, message:str):
         self.notification_bar.setText(message)
         self.repaint()
+
+    def timekey_save_to_settings(self, text:str):
+        self.settings.setValue("timekey", text)
 
     ########################
     def find_regions(self, db_threshold):
