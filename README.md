@@ -9,6 +9,8 @@
 python -m pip install -r requirements.txt
 python main.py
 ```
+## Overview 
+<img width="1284" height="752" alt="Capture d’écran du 2025-08-21 22-02-01" src="https://github.com/user-attachments/assets/c8987f55-6621-47df-bf24-17b9e38b6e31" />
 
 ![pase_icon](screenshots/pase_icon.png)
 # Python Audio Spectrogram Explorer (PASE)
@@ -225,6 +227,7 @@ Example result for the shapematching:
 Example result for the spectrogram correlation:
 
 ![autodetect3](screenshots/m5.JPG)
+
 
 
 
