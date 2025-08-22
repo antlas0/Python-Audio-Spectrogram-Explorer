@@ -1028,19 +1028,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def compute_spectrogram(self, p, nperseg, noverlap, input_data:InputData):
         if input_data.fft_data is None:
-            f, t, ssx = signal.spectrogram(
-                p,
-                input_data.audio_data.fs,
-                window="hamming",
-                nperseg=nperseg,
-                noverlap=noverlap,
-            )
-            ffts = FFTSample(
-                ssx=ssx,
-                f=f,
-                t=t,
-            )
-            input_data.fft_data = ffts
+            try:
+                f, t, ssx = signal.spectrogram(
+                    p,
+                    input_data.audio_data.fs,
+                    window="hamming",
+                    nperseg=nperseg,
+                    noverlap=noverlap,
+                )
+            except Exception as e:
+                self.notify_message(f"Could not generate spectrogram: {e}")
+            else:
+                ffts = FFTSample(
+                    ssx=ssx,
+                    f=f,
+                    t=t,
+                )
+                input_data.fft_data = ffts
 
     def generate_spectrogram(self):
         if self._filepointer >= 0:
@@ -1151,145 +1155,154 @@ class MainWindow(QtWidgets.QMainWindow):
         self.canvas.draw()
 
     def plot_spectrogram(self):
-        if self._filepointer >= 0:
-            # self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-            # self.setCentralWidget(self.canvas)
+        if self._input_data[self._filepointer].fft_data is None \
+            or self._input_data[self._filepointer].audio_data is None:
+
             self.canvas.fig.clf()
             self.canvas.axes = self.canvas.fig.add_subplot(111)
-            # self.canvas.axes.cla()
-
-            if self.t_length.text() == "":
-                self.plotwindow_length = self._input_data[self._filepointer].fft_data.t[-1]
-                self.plotwindow_startsecond = self._input_data[self._filepointer].fft_data.t[0]
-            else:
-                self.plotwindow_length = float(self.t_length.text())
-                if self._input_data[self._filepointer].fft_data.t[-1] < self.plotwindow_length:
-                    self.plotwindow_startsecond = self._input_data[self._filepointer].fft_data.t[0]
-                    self.plotwindow_length = self._input_data[self._filepointer].fft_data.t[-1]
-
-            y1 = int(self.f_min.text())
-            y2 = int(self.f_max.text())
-            if y2 > (self._input_data[self._filepointer].audio_data.fs / 2):
-                y2 = self._input_data[self._filepointer].audio_data.fs / 2
-            t1 = self.plotwindow_startsecond
-            t2 = self.plotwindow_startsecond + self.plotwindow_length
-
-            # if self.t_length.text=='':
-            #     t2=self._input_data[self._filepointer].fft_data.t[-1]
-            # else:
-            #     if self._input_data[self._filepointer].fft_data.t[-1]<float(self.t_length.text()):
-            #         t2=self._input_data[self._filepointer].fft_data.t[-1]
-            #     else:
-            #         t2=self.plotwindow_startsecond+self.plotwindow_length
-
-            # tt,ff=np.meshgrid(self._input_data[self._filepointer].fft_data.t,self._input_data[self._filepointer].fft_data.f)
-            # ix_time=(tt>=self.plotwindow_startsecond) & (tt<(self.plotwindow_startsecond+self.plotwindow_length))
-            # ix_f=(ff>=y1) & (ff<y2)
-            # plotsxx=self._input_data[self._filepointer].fft_data.ssx[ ix_f & ix_time]
-            ix_time = np.where((self._input_data[self._filepointer].fft_data.t>= t1) & (self._input_data[self._filepointer].fft_data.t< t2))[0]
-            ix_f = np.where((self._input_data[self._filepointer].fft_data.f >= y1) & (self._input_data[self._filepointer].fft_data.f < y2))[0]
-            # print(ix_time.shape)
-            # print([self._input_data[self._filepointer].fft_data.t,t1,t2])
-            plotsxx = self._input_data[self._filepointer].fft_data.ssx[
-                int(ix_f[0]) : int(ix_f[-1]), int(ix_time[0]) : int(ix_time[-1])
-            ]
-            plotsxx_db = 10 * np.log10(plotsxx)
-
-            if self.checkbox_background.isChecked():
-                spec_mean = np.median(plotsxx_db, axis=1)
-                sxx_background = np.transpose(
-                    np.broadcast_to(spec_mean, np.transpose(plotsxx_db).shape)
-                )
-                plotsxx_db = plotsxx_db - sxx_background
-                plotsxx_db = plotsxx_db - np.min(plotsxx_db.flatten())
-            # print(plotsxx.shape)
-
-            # img=self.canvas.axes.pcolormesh(self._input_data[self._filepointer].fft_data.t, self._input_data[self._filepointer].fft_data.f, 10*np.log10(self._input_data[self._filepointer].fft_data.ssx) ,cmap='plasma')
-            colormap_plot = self.colormap_plot.currentText()
-            img = self.canvas.axes.imshow(
-                plotsxx_db,
-                aspect="auto",
-                cmap=colormap_plot,
-                origin="lower",
-                extent=[t1, t2, y1, y2],
-            )
-
-            # img=self.canvas.axes.pcolormesh(self._input_data[self._filepointer].fft_data.t[ int(ix_time[0]):int(ix_time[-1])], self._input_data[self._filepointer].fft_data.f[int(ix_f[0]):int(ix_f[-1])], 10*np.log10(plotsxx) , shading='flat',cmap='plasma')
-
-            self.canvas.axes.set_ylabel("Frequency [Hz]")
-            self.canvas.axes.set_xlabel("Time [sec]")
-            if self.checkbox_logscale.isChecked():
-                self.canvas.axes.set_yscale("log")
-            else:
-                self.canvas.axes.set_yscale("linear")
-
-            if self._input_data[self._filepointer].date != dt.datetime(1970, 1, 1, 0, 0):
-                self.canvas.axes.set_title(self._input_data[self._filepointer].date)
-            else:
-                self.canvas.axes.set_title(os.path.basename(self._input_data[self._filepointer].filename))
-
-
-            # img.set_clim([ 40 ,10*np.log10( np.max(np.array(plotsxx).ravel() )) ] )
-            clims = img.get_clim()
-            if (self.db_vmin.text() == "") & (self.db_vmax.text() != ""):
-                img.set_clim([clims[0], float(self.db_vmax.text())])
-            if (self.db_vmin.text() != "") & (self.db_vmax.text() == ""):
-                img.set_clim([float(self.db_vmin.text()), clims[1]])
-            if (self.db_vmin.text() != "") & (self.db_vmax.text() != ""):
-                img.set_clim([float(self.db_vmin.text()), float(self.db_vmax.text())])
-
-            self.canvas.fig.colorbar(img, label="PSD [dB re $1 \ \mu Pa \ Hz^{-1}$]")
-
-            # print(self._input_data[self._filepointer].date)
-            # print(self.call_time)
-
-            # plot detections
-            cmap = plt.cm.get_cmap("cool")
-            if self._detectiondf.shape[0] > 0:
-                for i in range(self._detectiondf.shape[0]):
-                    insidewindow = (
-                        (self._detectiondf.loc[i, "t-1"] > self.plotwindow_startsecond)
-                        & (
-                            self._detectiondf.loc[i, "t-2"]
-                            < (self.plotwindow_startsecond + self.plotwindow_length)
-                        )
-                        & (
-                            self._detectiondf.loc[i, "audiofilename"]
-                            == self._input_data[self._filepointer].filename
-                        )
-                    )
-
-                    scoremin = self._detectiondf["score"].min()
-                    scoremax = self._detectiondf["score"].max()
-
-                    if (self._detectiondf.loc[i, "score"] >= 0.01) & insidewindow:
-                        xx1 = self._detectiondf.loc[i, "t-1"]
-                        xx2 = self._detectiondf.loc[i, "t-2"]
-                        yy1 = self._detectiondf.loc[i, "f-1"]
-                        yy2 = self._detectiondf.loc[i, "f-2"]
-                        scorelabel = str(np.round(self._detectiondf.loc[i, "score"], 2))
-                        snorm = (self._detectiondf.loc[i, "score"] - scoremin) / (
-                            scoremax - scoremin
-                        )
-                        scorecolor = cmap(snorm)
-
-                        line_x = [xx2, xx1, xx1, xx2, xx2]
-                        line_y = [yy1, yy1, yy2, yy2, yy1]
-
-                        xmin = np.min([xx1, xx2])
-                        ymax = np.max([yy1, yy2])
-                        self.canvas.axes.plot(
-                            line_x, line_y, "-", color=scorecolor, linewidth=0.75
-                        )
-                        self.canvas.axes.text(
-                            xmin, ymax, scorelabel, size=8, color=scorecolor
-                        )
-
-            self.canvas.axes.set_ylim([y1, y2])
-            self.canvas.axes.set_xlim([t1, t2])
-
+            self.canvas.axes.set_title(os.path.basename(self._input_data[self._filepointer].filename))
             self.canvas.fig.tight_layout()
             self.canvas.draw()
+            return
+
+        # self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+        # self.setCentralWidget(self.canvas)
+        self.canvas.fig.clf()
+        self.canvas.axes = self.canvas.fig.add_subplot(111)
+        # self.canvas.axes.cla()
+
+        if self.t_length.text() == "":
+            self.plotwindow_length = self._input_data[self._filepointer].fft_data.t[-1]
+            self.plotwindow_startsecond = self._input_data[self._filepointer].fft_data.t[0]
+        else:
+            self.plotwindow_length = float(self.t_length.text())
+            if self._input_data[self._filepointer].fft_data.t[-1] < self.plotwindow_length:
+                self.plotwindow_startsecond = self._input_data[self._filepointer].fft_data.t[0]
+                self.plotwindow_length = self._input_data[self._filepointer].fft_data.t[-1]
+
+        y1 = int(self.f_min.text())
+        y2 = int(self.f_max.text())
+        if y2 > (self._input_data[self._filepointer].audio_data.fs / 2):
+            y2 = self._input_data[self._filepointer].audio_data.fs / 2
+        t1 = self.plotwindow_startsecond
+        t2 = self.plotwindow_startsecond + self.plotwindow_length
+
+        # if self.t_length.text=='':
+        #     t2=self._input_data[self._filepointer].fft_data.t[-1]
+        # else:
+        #     if self._input_data[self._filepointer].fft_data.t[-1]<float(self.t_length.text()):
+        #         t2=self._input_data[self._filepointer].fft_data.t[-1]
+        #     else:
+        #         t2=self.plotwindow_startsecond+self.plotwindow_length
+
+        # tt,ff=np.meshgrid(self._input_data[self._filepointer].fft_data.t,self._input_data[self._filepointer].fft_data.f)
+        # ix_time=(tt>=self.plotwindow_startsecond) & (tt<(self.plotwindow_startsecond+self.plotwindow_length))
+        # ix_f=(ff>=y1) & (ff<y2)
+        # plotsxx=self._input_data[self._filepointer].fft_data.ssx[ ix_f & ix_time]
+        ix_time = np.where((self._input_data[self._filepointer].fft_data.t>= t1) & (self._input_data[self._filepointer].fft_data.t< t2))[0]
+        ix_f = np.where((self._input_data[self._filepointer].fft_data.f >= y1) & (self._input_data[self._filepointer].fft_data.f < y2))[0]
+        # print(ix_time.shape)
+        # print([self._input_data[self._filepointer].fft_data.t,t1,t2])
+        plotsxx = self._input_data[self._filepointer].fft_data.ssx[
+            int(ix_f[0]) : int(ix_f[-1]), int(ix_time[0]) : int(ix_time[-1])
+        ]
+        plotsxx_db = 10 * np.log10(plotsxx)
+
+        if self.checkbox_background.isChecked():
+            spec_mean = np.median(plotsxx_db, axis=1)
+            sxx_background = np.transpose(
+                np.broadcast_to(spec_mean, np.transpose(plotsxx_db).shape)
+            )
+            plotsxx_db = plotsxx_db - sxx_background
+            plotsxx_db = plotsxx_db - np.min(plotsxx_db.flatten())
+        # print(plotsxx.shape)
+
+        # img=self.canvas.axes.pcolormesh(self._input_data[self._filepointer].fft_data.t, self._input_data[self._filepointer].fft_data.f, 10*np.log10(self._input_data[self._filepointer].fft_data.ssx) ,cmap='plasma')
+        colormap_plot = self.colormap_plot.currentText()
+        img = self.canvas.axes.imshow(
+            plotsxx_db,
+            aspect="auto",
+            cmap=colormap_plot,
+            origin="lower",
+            extent=[t1, t2, y1, y2],
+        )
+
+        # img=self.canvas.axes.pcolormesh(self._input_data[self._filepointer].fft_data.t[ int(ix_time[0]):int(ix_time[-1])], self._input_data[self._filepointer].fft_data.f[int(ix_f[0]):int(ix_f[-1])], 10*np.log10(plotsxx) , shading='flat',cmap='plasma')
+
+        self.canvas.axes.set_ylabel("Frequency [Hz]")
+        self.canvas.axes.set_xlabel("Time [sec]")
+        if self.checkbox_logscale.isChecked():
+            self.canvas.axes.set_yscale("log")
+        else:
+            self.canvas.axes.set_yscale("linear")
+
+        if self._input_data[self._filepointer].date != dt.datetime(1970, 1, 1, 0, 0):
+            self.canvas.axes.set_title(self._input_data[self._filepointer].date)
+        else:
+            self.canvas.axes.set_title(os.path.basename(self._input_data[self._filepointer].filename))
+
+
+        # img.set_clim([ 40 ,10*np.log10( np.max(np.array(plotsxx).ravel() )) ] )
+        clims = img.get_clim()
+        if (self.db_vmin.text() == "") & (self.db_vmax.text() != ""):
+            img.set_clim([clims[0], float(self.db_vmax.text())])
+        if (self.db_vmin.text() != "") & (self.db_vmax.text() == ""):
+            img.set_clim([float(self.db_vmin.text()), clims[1]])
+        if (self.db_vmin.text() != "") & (self.db_vmax.text() != ""):
+            img.set_clim([float(self.db_vmin.text()), float(self.db_vmax.text())])
+
+        self.canvas.fig.colorbar(img, label="PSD [dB re $1 \ \mu Pa \ Hz^{-1}$]")
+
+        # print(self._input_data[self._filepointer].date)
+        # print(self.call_time)
+
+        # plot detections
+        cmap = plt.cm.get_cmap("cool")
+        if self._detectiondf.shape[0] > 0:
+            for i in range(self._detectiondf.shape[0]):
+                insidewindow = (
+                    (self._detectiondf.loc[i, "t-1"] > self.plotwindow_startsecond)
+                    & (
+                        self._detectiondf.loc[i, "t-2"]
+                        < (self.plotwindow_startsecond + self.plotwindow_length)
+                    )
+                    & (
+                        self._detectiondf.loc[i, "audiofilename"]
+                        == self._input_data[self._filepointer].filename
+                    )
+                )
+
+                scoremin = self._detectiondf["score"].min()
+                scoremax = self._detectiondf["score"].max()
+
+                if (self._detectiondf.loc[i, "score"] >= 0.01) & insidewindow:
+                    xx1 = self._detectiondf.loc[i, "t-1"]
+                    xx2 = self._detectiondf.loc[i, "t-2"]
+                    yy1 = self._detectiondf.loc[i, "f-1"]
+                    yy2 = self._detectiondf.loc[i, "f-2"]
+                    scorelabel = str(np.round(self._detectiondf.loc[i, "score"], 2))
+                    snorm = (self._detectiondf.loc[i, "score"] - scoremin) / (
+                        scoremax - scoremin
+                    )
+                    scorecolor = cmap(snorm)
+
+                    line_x = [xx2, xx1, xx1, xx2, xx2]
+                    line_y = [yy1, yy1, yy2, yy2, yy1]
+
+                    xmin = np.min([xx1, xx2])
+                    ymax = np.max([yy1, yy2])
+                    self.canvas.axes.plot(
+                        line_x, line_y, "-", color=scorecolor, linewidth=0.75
+                    )
+                    self.canvas.axes.text(
+                        xmin, ymax, scorelabel, size=8, color=scorecolor
+                    )
+
+        self.canvas.axes.set_ylim([y1, y2])
+        self.canvas.axes.set_xlim([t1, t2])
+
+        self.canvas.fig.tight_layout()
+        self.canvas.draw()
 
     def plot_spectrogram_threshold(self):
         if self._filepointer >= 0:
@@ -1325,6 +1338,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def export_zoomed_sgram_as_csv(self):
         if self._filepointer >= 0:
+
+            if self._input_data[self._filepointer].fft_data is None \
+                or self._input_data[self._filepointer].audio_data is None:
+                self.notify_message(f"No data to save for file {self._input_data[self._filepointer].filename}")
+                return
             # filter out background
             spectrog = 10 * np.log10(self._input_data[self._filepointer].fft_data.ssx)
 
@@ -1421,76 +1439,20 @@ class MainWindow(QtWidgets.QMainWindow):
             self.plot_annotations()
 
     def plot_next_spectro(self):
-        if len(self._input_data) > 0 and self._filepointer != len(self._input_data)-1:
+        if len(self._input_data) == 0 or self._filepointer == len(self._input_data)-1:
+            return
 
-            if self.t_length.text() == "" or (
-                (self._filepointer >= 0) & (self._input_data[self._filepointer].fft_data.t[-1] < float(self.t_length.text()))
-            ):
-                self._filepointer = self._filepointer + 1
-                if self._filepointer > len(self._input_data) - 1:
-                    self._filepointer = len(self._input_data) - 1
-                self.plotwindow_length = self._input_data[self._filepointer].fft_data.t[-1]
-                self.plotwindow_startsecond = self._input_data[self._filepointer].fft_data.t[0]
-                self.generate_spectrogram()
-                self.plot_spectrogram()
-            else:
-                self.plotwindow_length = float(self.t_length.text())
-                self.plotwindow_startsecond = (
-                    self.plotwindow_startsecond + self.plotwindow_length
-                )
-            if self.plotwindow_startsecond > self._input_data[self._filepointer].fft_data.t[-1]:
-                # if self.checkbox_log.isChecked():
-                #     tt = self._input_data[self._filepointer].annotations["t1"] - self._input_data[self._filepointer].date
-                #     t_in_seconds = np.array(tt.values * 1e-9, dtype="float16")
-                #     reclength = np.array(self._input_data[self._filepointer].fft_data.t[-1], dtype="float16")
-                #     ix = (t_in_seconds > 0) & (t_in_seconds < reclength)
-                #     calldata = self._input_data[self._filepointer].annotations.iloc[ix, :]
-                #     savename = self.current_audiopath
-                #     nn = (
-                #         savename[:-4]
-                #         + "_log_sec"
-                #         + str(int(self._input_data[self._filepointer].fft_data.t[0]))
-                #         + "_to_sec"
-                #         + str(int(self._input_data[self._filepointer].fft_data.t[-1]))
-                #         + ".csv"
-                #     )
-                #     calldata.to_csv(nn)
-                #     print("writing log: " + nn)
-                # new file
-                self._filepointer = self._filepointer + 1
-                if self._filepointer >= len(self._input_data) - 1:
-                    self._filepointer = len(self._input_data) - 1
-                self.generate_spectrogram()
-                self.plotwindow_startsecond = self._input_data[self._filepointer].fft_data.t[0]
-                self.plot_spectrogram()
-            else:
-                self.plot_spectrogram()
+        self._filepointer = self._filepointer + 1
+        self.generate_spectrogram()
+        self.plot_spectrogram()
 
     def plot_previous_spectro(self):
-        if len(self._input_data) > 0 and self._filepointer != 0:
+        if len(self._input_data) == 0 or self._filepointer == 0:
+            return
 
-            if self.t_length.text() == "" or (
-                (self._filepointer >= 0) & (self._input_data[self._filepointer].fft_data.t[-1] < float(self.t_length.text()))
-            ):
-                self._filepointer = self._filepointer - 1
-                if self._filepointer < 0:
-                    self._filepointer = 0
-                self.plotwindow_length = self._input_data[self._filepointer].fft_data.t[-1]
-                self.plotwindow_startsecond = self._input_data[self._filepointer].fft_data.t[0]
-                self.generate_spectrogram()
-                self.plot_spectrogram()
-
-            else:
-                self.plotwindow_startsecond = (
-                    self.plotwindow_startsecond - self.plotwindow_length
-                )
-                print([self.plotwindow_startsecond, self._input_data[self._filepointer].fft_data.t[0], self._input_data[self._filepointer].fft_data.t[-1]])
-                if self.plotwindow_startsecond < self._input_data[self._filepointer].fft_data.t[0]:
-                    self._filepointer = self._filepointer - 1
-                    self.generate_spectrogram()
-                    self.plot_spectrogram()
-                else:
-                    self.plot_spectrogram()
+        self._filepointer = self._filepointer - 1
+        self.generate_spectrogram()
+        self.plot_spectrogram()
 
     def new_fft_size_selected(self):
         self.generate_spectrogram()
@@ -1580,9 +1542,9 @@ class MainWindow(QtWidgets.QMainWindow):
         for i in range(self._filepointer + 1):
             audiopath = self._input_data[i].filename
 
-            self.read_soundfile(self._input_data[self._filepointer])
+            self.read_soundfile(self._input_data[i])
             db_saturation = float(self.db_saturation.text())
-            x = self._input_data[self._filepointer].audio_data.x / 32767
+            x = self._input_data[i].audio_data.x / 32767
             p = np.power(10, (db_saturation / 20)) * x  # convert data.signal to uPa
 
             fft_size = int(self.fft_size.currentText())
@@ -1594,23 +1556,27 @@ class MainWindow(QtWidgets.QMainWindow):
                 nperseg = fft_size
                 noverlap = None
 
-            self._input_data[self._filepointer].fft_data.f, self._input_data[self._filepointer].fft_data.t, self._input_data[self._filepointer].fft_data.ssx = signal.spectrogram(
-                p,
-                self._input_data[self._filepointer].audio_data.fs,
-                window="hamming",
-                nperseg=nperseg,
-                noverlap=noverlap,
-            )
+            try:
+                self._input_data[i].fft_data.f, self._input_data[i].fft_data.t, self._input_data[i].fft_data.ssx = signal.spectrogram(
+                    p,
+                    self._input_data[i].audio_data.fs,
+                    window="hamming",
+                    nperseg=nperseg,
+                    noverlap=noverlap,
+                )
+            except Exception as e:
+                self.notify_message(f"Could not export spectrogram of {self._input_data[i].filename}: {e}")
+                continue
+            else:
+                self.plotwindow_startsecond = 0
 
-            self.plotwindow_startsecond = 0
-
-            self.plot_spectrogram()
-            self.canvas.axes.set_title(os.path.basename(audiopath))
-            output_path = os.path.join(
-                self._output_directory, os.path.basename(audiopath) + ".jpg"
-            )
-            self.notify_message(f"Saving spectrogram to {output_path}")
-            self.canvas.fig.savefig(output_path, dpi=150)
+                self.plot_spectrogram()
+                self.canvas.axes.set_title(os.path.basename(audiopath))
+                output_path = os.path.join(
+                    self._output_directory, os.path.basename(audiopath) + ".jpg"
+                )
+                self.notify_message(f"Saving spectrogram to {output_path}")
+                self.canvas.fig.savefig(output_path, dpi=150)
 
     def plot_drawing(self):
         if self._filepointer >= 0:
@@ -1806,30 +1772,89 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plot_spectrogram()
 
     def func_playaudio(self):
-        if self._filepointer >= 0:
-            if not hasattr(self, "play_obj"):
+        if not hasattr(self.canvas, "axes"):
+            return
+
+        if (lims := self.canvas.axes.get_xlim()):
+            if int(lims[0]) == 0 and int(lims[1]) == 1:
+                # no plot
+                return
+
+        if not hasattr(self, "play_obj"):
+            new_rate = 32000
+
+            t_limits = list(self.canvas.axes.get_xlim())
+
+            t_limits = list(
+                (
+                    x
+                    - self._input_data[self._filepointer].start
+                    / self._input_data[self._filepointer].audio_data.fs
+                    for x in t_limits
+                )
+            )
+            f_limits = list(self.canvas.axes.get_ylim())
+            if f_limits[1] >= (self._input_data[self._filepointer].audio_data.fs / 2):
+                f_limits[1] = self._input_data[self._filepointer].audio_data.fs / 2 - 10
+
+            x_select = self._input_data[self._filepointer].audio_data.x[
+                int(t_limits[0] * self._input_data[self._filepointer].audio_data.fs) : int(
+                    t_limits[1] * self._input_data[self._filepointer].audio_data.fs
+                )
+            ]
+
+            sos = signal.butter(
+                8,
+                f_limits,
+                "bandpass",
+                fs=self._input_data[self._filepointer].audio_data.fs,
+                output="sos",
+            )
+            x_select = signal.sosfilt(sos, x_select)
+
+            number_of_samples = round(
+                len(x_select)
+                * (float(new_rate) / float(self.playbackspeed.currentText()))
+                / self._input_data[self._filepointer].audio_data.fs
+            )
+            x_resampled = np.array(
+                signal.resample(x_select, number_of_samples)
+            ).astype("int")
+
+            # normalize sound level
+            maximum_x = 32767 * 0.8
+            old_max = np.max(np.abs([x_resampled.min(), x_resampled.max()]))
+            x_resampled = x_resampled * (maximum_x / old_max)
+            x_resampled = x_resampled.astype(np.int16)
+
+            wave_obj = sa.WaveObject(x_resampled, 1, 2, new_rate)
+
+            self.play_obj = wave_obj.play()
+        else:
+            if self.play_obj.is_playing():
+                sa.stop_all()
+            else:
                 new_rate = 32000
-
                 t_limits = list(self.canvas.axes.get_xlim())
-
                 t_limits = list(
-                    (
-                        x
-                        - self._input_data[self._filepointer].start
-                        / self._input_data[self._filepointer].audio_data.fs
-                        for x in t_limits
-                    )
+                    x
+                    - self._input_data[self._filepointer].start
+                    / self._input_data[self._filepointer].audio_data.fs
+                    for x in t_limits
                 )
                 f_limits = list(self.canvas.axes.get_ylim())
                 if f_limits[1] >= (self._input_data[self._filepointer].audio_data.fs / 2):
-                    f_limits[1] = self._input_data[self._filepointer].audio_data.fs / 2 - 10
+                    f_limits[1] = (
+                        self._input_data[self._filepointer].audio_data.fs / 2 - 10
+                    )
 
                 x_select = self._input_data[self._filepointer].audio_data.x[
-                    int(t_limits[0] * self._input_data[self._filepointer].audio_data.fs) : int(
+                    int(
+                        t_limits[0] * self._input_data[self._filepointer].audio_data.fs
+                    ) : int(
                         t_limits[1] * self._input_data[self._filepointer].audio_data.fs
                     )
                 ]
-
                 sos = signal.butter(
                     8,
                     f_limits,
@@ -1839,15 +1864,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 )
                 x_select = signal.sosfilt(sos, x_select)
 
+                # number_of_samples = round(len(x_select) * float(new_rate) / self._input_data[self._filepointer].audio_data.fs)
                 number_of_samples = round(
                     len(x_select)
                     * (float(new_rate) / float(self.playbackspeed.currentText()))
                     / self._input_data[self._filepointer].audio_data.fs
                 )
+
                 x_resampled = np.array(
                     signal.resample(x_select, number_of_samples)
                 ).astype("int")
-
                 # normalize sound level
                 maximum_x = 32767 * 0.8
                 old_max = np.max(np.abs([x_resampled.min(), x_resampled.max()]))
@@ -1855,60 +1881,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 x_resampled = x_resampled.astype(np.int16)
 
                 wave_obj = sa.WaveObject(x_resampled, 1, 2, new_rate)
-
                 self.play_obj = wave_obj.play()
-            else:
-                if self.play_obj.is_playing():
-                    sa.stop_all()
-                else:
-                    new_rate = 32000
-                    t_limits = list(self.canvas.axes.get_xlim())
-                    t_limits = list(
-                        x
-                        - self._input_data[self._filepointer].start
-                        / self._input_data[self._filepointer].audio_data.fs
-                        for x in t_limits
-                    )
-                    f_limits = list(self.canvas.axes.get_ylim())
-                    if f_limits[1] >= (self._input_data[self._filepointer].audio_data.fs / 2):
-                        f_limits[1] = (
-                            self._input_data[self._filepointer].audio_data.fs / 2 - 10
-                        )
-
-                    x_select = self._input_data[self._filepointer].audio_data.x[
-                        int(
-                            t_limits[0] * self._input_data[self._filepointer].audio_data.fs
-                        ) : int(
-                            t_limits[1] * self._input_data[self._filepointer].audio_data.fs
-                        )
-                    ]
-                    sos = signal.butter(
-                        8,
-                        f_limits,
-                        "bandpass",
-                        fs=self._input_data[self._filepointer].audio_data.fs,
-                        output="sos",
-                    )
-                    x_select = signal.sosfilt(sos, x_select)
-
-                    # number_of_samples = round(len(x_select) * float(new_rate) / self._input_data[self._filepointer].audio_data.fs)
-                    number_of_samples = round(
-                        len(x_select)
-                        * (float(new_rate) / float(self.playbackspeed.currentText()))
-                        / self._input_data[self._filepointer].audio_data.fs
-                    )
-
-                    x_resampled = np.array(
-                        signal.resample(x_select, number_of_samples)
-                    ).astype("int")
-                    # normalize sound level
-                    maximum_x = 32767 * 0.8
-                    old_max = np.max(np.abs([x_resampled.min(), x_resampled.max()]))
-                    x_resampled = x_resampled * (maximum_x / old_max)
-                    x_resampled = x_resampled.astype(np.int16)
-
-                    wave_obj = sa.WaveObject(x_resampled, 1, 2, new_rate)
-                    self.play_obj = wave_obj.play()
 
     def func_saveaudio(self):
         if self._filepointer >= 0:
@@ -1932,32 +1905,36 @@ class MainWindow(QtWidgets.QMainWindow):
                     )
                 ]
 
-                sos = signal.butter(
-                    8,
-                    f_limits,
-                    "bandpass",
-                    fs=self._input_data[self._filepointer].audio_data.fs,
-                    output="sos",
-                )
-                x_select = signal.sosfilt(sos, x_select)
+                try:
+                    sos = signal.butter(
+                        8,
+                        f_limits,
+                        "bandpass",
+                        fs=self._input_data[self._filepointer].audio_data.fs,
+                        output="sos",
+                    )
+                except Exception as e:
+                    self.notify_message(f"Could not save as wav file: {e}")
+                else:
+                    x_select = signal.sosfilt(sos, x_select)
 
-                number_of_samples = round(
-                    len(x_select)
-                    * (float(new_rate) / float(self.playbackspeed.currentText()))
-                    / self._input_data[self._filepointer].audio_data.fs
-                )
-                x_resampled = np.array(
-                    signal.resample(x_select, number_of_samples)
-                ).astype("int")
-                # normalize sound level
-                maximum_x = 32767 * 0.8
-                old_max = np.max(np.abs([x_resampled.min(), x_resampled.max()]))
-                x_resampled = x_resampled * (maximum_x / old_max)
-                x_resampled = x_resampled.astype(np.int16)
+                    number_of_samples = round(
+                        len(x_select)
+                        * (float(new_rate) / float(self.playbackspeed.currentText()))
+                        / self._input_data[self._filepointer].audio_data.fs
+                    )
+                    x_resampled = np.array(
+                        signal.resample(x_select, number_of_samples)
+                    ).astype("int")
+                    # normalize sound level
+                    maximum_x = 32767 * 0.8
+                    old_max = np.max(np.abs([x_resampled.min(), x_resampled.max()]))
+                    x_resampled = x_resampled * (maximum_x / old_max)
+                    x_resampled = x_resampled.astype(np.int16)
 
-                if savename[-4:] != ".wav":
-                    savename = savename + ".wav"
-                wav.write(savename, new_rate, x_resampled)
+                    if savename[-4:] != ".wav":
+                        savename = savename + ".wav"
+                    wav.write(savename, new_rate, x_resampled)
         # button_save_audio.clicked.connect(func_saveaudio)
 
         # button_save_video=QtWidgets.QPushButton('Export video')
@@ -1983,60 +1960,63 @@ class MainWindow(QtWidgets.QMainWindow):
                         t_limits[1] * self._input_data[self._filepointer].audio_data.fs
                     )
                 ]
+                try:
+                    sos = signal.butter(
+                        8,
+                        f_limits,
+                        "bandpass",
+                        fs=self._input_data[self._filepointer].audio_data.fs,
+                        output="sos",
+                    )
+                except Exception as e:
+                    self.notify_message(f"Could not save as wav file: {e}")
+                else:
+                    x_select = signal.sosfilt(sos, x_select)
 
-                sos = signal.butter(
-                    8,
-                    f_limits,
-                    "bandpass",
-                    fs=self._input_data[self._filepointer].audio_data.fs,
-                    output="sos",
-                )
-                x_select = signal.sosfilt(sos, x_select)
+                    number_of_samples = round(
+                        len(x_select)
+                        * (float(new_rate) / float(self.playbackspeed.currentText()))
+                        / self._input_data[self._filepointer].audio_data.fs
+                    )
+                    x_resampled = np.array(
+                        signal.resample(x_select, number_of_samples)
+                    ).astype("int")
+                    # normalize sound level
+                    maximum_x = 32767 * 0.8
+                    old_max = np.max(np.abs([x_resampled.min(), x_resampled.max()]))
+                    x_resampled = x_resampled * (maximum_x / old_max)
+                    x_resampled = x_resampled.astype(np.int16)
 
-                number_of_samples = round(
-                    len(x_select)
-                    * (float(new_rate) / float(self.playbackspeed.currentText()))
-                    / self._input_data[self._filepointer].audio_data.fs
-                )
-                x_resampled = np.array(
-                    signal.resample(x_select, number_of_samples)
-                ).astype("int")
-                # normalize sound level
-                maximum_x = 32767 * 0.8
-                old_max = np.max(np.abs([x_resampled.min(), x_resampled.max()]))
-                x_resampled = x_resampled * (maximum_x / old_max)
-                x_resampled = x_resampled.astype(np.int16)
+                    if savename[:-4] == ".wav":
+                        savename = savename[:-4]
+                    if savename[:-4] == ".mp4":
+                        savename = savename[:-4]
+                    wav.write(savename + ".wav", new_rate, x_resampled)
 
-                if savename[:-4] == ".wav":
-                    savename = savename[:-4]
-                if savename[:-4] == ".mp4":
-                    savename = savename[:-4]
-                wav.write(savename + ".wav", new_rate, x_resampled)
+                    # self.f_limits=self.canvas.axes.get_ylim()
+                    # self.t_limits=self.canvas.axes.get_xlim()
 
-                # self.f_limits=self.canvas.axes.get_ylim()
-                # self.t_limits=self.canvas.axes.get_xlim()
+                    audioclip = AudioFileClip(savename + ".wav")
+                    duration = audioclip.duration
+                    # plot_drawing()
 
-                audioclip = AudioFileClip(savename + ".wav")
-                duration = audioclip.duration
-                # plot_drawing()
+                    self.canvas.axes.set_title(None)
+                    # self.canvas.axes.set_ylim(f_limits)
+                    # self.canvas.axes.set_xlim(t_limits)
+                    self.line_2 = self.canvas.axes.plot(
+                        [t_limits[0], t_limits[0]], f_limits, "-k"
+                    )
 
-                self.canvas.axes.set_title(None)
-                # self.canvas.axes.set_ylim(f_limits)
-                # self.canvas.axes.set_xlim(t_limits)
-                self.line_2 = self.canvas.axes.plot(
-                    [t_limits[0], t_limits[0]], f_limits, "-k"
-                )
+                    def make_frame(x):
+                        s = t_limits[1] - t_limits[0]
+                        xx = x / duration * s + t_limits[0]
+                        line = self.line_2.pop(0)
+                        line.remove()
+                        self.line_2 = self.canvas.axes.plot([xx, xx], f_limits, "-k")
 
-                def make_frame(x):
-                    s = t_limits[1] - t_limits[0]
-                    xx = x / duration * s + t_limits[0]
-                    line = self.line_2.pop(0)
-                    line.remove()
-                    self.line_2 = self.canvas.axes.plot([xx, xx], f_limits, "-k")
+                        return mplfig_to_npimage(self.canvas.fig)
 
-                    return mplfig_to_npimage(self.canvas.fig)
-
-                animation = VideoClip(make_frame, duration=duration)
-                animation = animation.with_audio(audioclip)
-                animation.write_videofile(savename + ".mp4", fps=24, preset="fast")
+                    animation = VideoClip(make_frame, duration=duration)
+                    animation = animation.with_audio(audioclip)
+                    animation.write_videofile(savename + ".mp4", fps=24, preset="fast")
 
