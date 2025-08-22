@@ -1616,7 +1616,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.canvas.fig.canvas.mpl_disconnect(self.mpl_action_draw)
         self.plot_spectrogram()
-        self.abortaction.activated.disconnect()
         self.notify_message("Aborting drawing")
 
     def func_draw_shape_save(self):
@@ -1625,7 +1624,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.canvas.fig.canvas.mpl_disconnect(self.mpl_action_draw)
         self.plot_spectrogram()
-        self.exitaction.activated.disconnect()
 
         if not self._input_data[self._filepointer].drawing.empty:
             ddate = dt.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
