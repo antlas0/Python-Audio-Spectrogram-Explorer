@@ -465,7 +465,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     df["score"] = score
 
                     self._detectiondf = df.copy()
-                    self._detectiondf["audiofilename"] = self.current_audiopath
+                    self._detectiondf["audiofilename"] = self._input_data[self._filepointer].filename
                     self._detectiondf["threshold"] = corrscore_threshold
 
                     self.plot_spectrogram()
@@ -523,7 +523,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     df["score"] = score
 
                     self._detectiondf = df.copy()
-                    self._detectiondf["audiofilename"] = self.current_audiopath
+                    self._detectiondf["audiofilename"] = self._input_data[self._filepointer].filename
                     self._detectiondf["threshold"] = corrscore_threshold
 
             print(self._detectiondf)
@@ -820,7 +820,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 ixdel = np.where(self._detectiondf["score"] < 0.01)[0]
                 self._detectiondf = self._detectiondf.drop(ixdel)
                 self._detectiondf = self._detectiondf.reset_index(drop=True)
-                self._detectiondf["audiofilename"] = self.current_audiopath
+                self._detectiondf["audiofilename"] = self._input_data[self._filepointer].filename
                 self._detectiondf["threshold"] = db_threshold
 
                 print(self._detectiondf)
@@ -1044,8 +1044,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def generate_spectrogram(self):
         if self._filepointer >= 0:
-            self.current_audiopath = self._input_data[self._filepointer].filename
-
             # if self.filename_timekey.text()=='':
             #     self._input_data[self._filepointer].date= dt.datetime(1,1,1,0,0,0)
             # else:
@@ -1109,7 +1107,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         )
                     )
                 )
-                & (self._input_data[self._filepointer].annotations["audiofilename"] == self.current_audiopath)
+                & (self._input_data[self._filepointer].annotations["audiofilename"] == self._input_data[self._filepointer].filename)
             )
             if np.sum(ix) > 0:
                 ix = np.where(ix)[0]
@@ -1225,10 +1223,11 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 self.canvas.axes.set_yscale("linear")
 
-            if self.filename_timekey.text() == "":
-                self.canvas.axes.set_title(self.current_audiopath.split("/")[-1])
-            else:
+            if self._input_data[self._filepointer].date != dt.datetime(1970, 1, 1, 0, 0):
                 self.canvas.axes.set_title(self._input_data[self._filepointer].date)
+            else:
+                self.canvas.axes.set_title(os.path.basename(self._input_data[self._filepointer].filename))
+
 
             # img.set_clim([ 40 ,10*np.log10( np.max(np.array(plotsxx).ravel() )) ] )
             clims = img.get_clim()
@@ -1256,7 +1255,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         )
                         & (
                             self._detectiondf.loc[i, "audiofilename"]
-                            == self.current_audiopath
+                            == self._input_data[self._filepointer].filename
                         )
                     )
 
@@ -1402,7 +1401,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 "f1": pd.Series(f1, dtype="float"),
                 "f2": pd.Series(f2, dtype="float"),
                 "label": pd.Series(c_label, dtype="object"),
-                "audiofilename": self.current_audiopath,
+                "audiofilename": self._input_data[self._filepointer].filename,
             }
         )
 
