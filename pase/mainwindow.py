@@ -1014,7 +1014,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     self._filepointer = i
                     break
 
-
     def read_soundfile(self, input_data: InputData, dtype: str = "int16"):
         if input_data.audio_data is None:
             x, fs = sf.read(
@@ -1454,6 +1453,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._filepointer = self._filepointer + 1
         self.generate_spectrogram()
         self.plot_spectrogram()
+        self.plot_annotations()
 
     def plot_previous_spectro(self):
         if len(self._input_data) == 0 or self._filepointer == 0:
@@ -1462,13 +1462,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self._filepointer = self._filepointer - 1
         self.generate_spectrogram()
         self.plot_spectrogram()
+        self.plot_annotations()
 
     def new_fft_size_selected(self):
         self.generate_spectrogram()
         self.plot_spectrogram()
 
     def load_annotations(self):
-        file = QtWidgets.QFileDialog.getOpenFileName(
+        file = QtWidgets.QFileDialog.getOpenFileNames(
             self, directory=self._output_directory
         )
 
@@ -1476,47 +1477,53 @@ class MainWindow(QtWidgets.QMainWindow):
             self.notify_message("Annotation loading aborted")
             return
 
-        try:
-            annotations = pd.read_csv(
-                    file[0],
-                    parse_dates=["t1", "t2"],
-                    dtype = {
-                        "f1": float,
-                        "f2": float,
-                        "label": object,
-                        "audiofilename": object,
-                    }
-                )
-        except Exception as e:
-            self.notify_message(f"Annotation file {file[0]} malformed: {e}")
-        else:
-            if annotations.empty:
-                self.notify_message(f"Annotation file {file[0]} empty")
-                return
+        for annotation_file in file[0]:
+            try:
+                annotations = pd.read_csv(
+                        annotation_file,
+                        parse_dates=["t1", "t2"],
+                        dtype = {
+                            "f1": float,
+                            "f2": float,
+                            "label": object,
+                            "audiofilename": object,
+                        }
+                    )
+            except Exception as e:
+                self.notify_message(f"Annotation file {annotation_file} malformed: {e}")
+                continue
+            else:
+                if annotations.empty:
+                    self.notify_message(f"Annotation file {annotation_file} empty")
+                    return
 
-            columns_to_check = ["t1", "t2", "f1", "f2", "label", "audiofilename"]
-            found_columns = [ x in annotations.columns for x in columns_to_check ]
-            if not all(found_columns):
-                self.notify_message(f"Annotation file {file[0]} malformed")
-                return
+                columns_to_check = ["t1", "t2", "f1", "f2", "label", "audiofilename"]
+                found_columns = [ x in annotations.columns for x in columns_to_check ]
+                if not all(found_columns):
+                    self.notify_message(f"Annotation file {annotation_file} malformed")
+                    return
 
-            self.notify_message(f"Opening annotations file {file[0]}")
-            self.open_file(annotations["audiofilename"][0])
-            self.plot_spectrogram()
-            self._input_data[self._filepointer].annotations = annotations
-            self.plot_annotations()
+                self.notify_message(f"Opening annotations file {annotation_file}")
+                self.open_file(annotations["audiofilename"][0])
+                self.plot_spectrogram()
+                self._input_data[self._filepointer].annotations = annotations
+                self._input_data[self._filepointer].annotations_file = annotation_file
+                self.plot_annotations()
 
     def func_annotate_save(self):
         for layout in [self.top2_layout, self.top3_layout, self.sidepanel_layout, self.plot_layout]:
             self.set_enabled_layout(layout, True)
-        ddate = dt.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-        savename = os.path.join(self._output_directory, f"annotations_{ddate}.csv")
+        if self._input_data[self._filepointer].annotations_file is None:
+            ddate = dt.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+            savename = os.path.join(self._output_directory, f"annotations_{ddate}.csv")
+            self._input_data[self._filepointer].annotations_file = savename
         self.canvas.fig.canvas.mpl_disconnect(self.mpl_action_annotate)
-        self.notify_message(f"Saving annotations to {savename}")
-        self._input_data[self._filepointer].annotations.to_csv(savename, index=False)
+        self.notify_message(f"Saving annotations to {self._input_data[self._filepointer].annotations_file}")
+        self._input_data[self._filepointer].annotations.to_csv(self._input_data[self._filepointer].annotations_file, index=False)
         self.toggle_selector = None
         del self.toggle_selector
         self.plot_spectrogram()
+        self.plot_annotations()
 
     def func_annotate_abort(self):
         for layout in [self.top2_layout, self.top3_layout, self.sidepanel_layout, self.plot_layout]:
@@ -1526,6 +1533,7 @@ class MainWindow(QtWidgets.QMainWindow):
         del self.toggle_selector
         self.notify_message("Aborting annotation")
         self.plot_spectrogram()
+        self.plot_annotations()
 
     # def func_logging(self):
     #     if self.checkbox_log.isChecked():

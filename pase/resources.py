@@ -60,4 +60,5 @@ class InputData:
     audio_data: Optional[AudioSample]=None
     fft_data: Optional[FFTSample]=None
     annotations: Optional[pd.DataFrame]=None
+    annotations_file: Optional[str]=None
     drawing: Optional[pd.DataFrame]=None
