@@ -1662,7 +1662,6 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         for layout in [self.top2_layout, self.top3_layout, self.sidepanel_layout, self.plot_layout]:
             self.set_enabled_layout(layout, False)
-        self.draw_button.setEnabled(True)
         self.canvas.setEnabled(True)
         self.notify_message("Drawing mode")
         if self._input_data[self._filepointer].drawing is None:
@@ -1754,7 +1753,6 @@ class MainWindow(QtWidgets.QMainWindow):
             )
         for layout in [self.top2_layout, self.sidepanel_layout, self.plot_layout]:
             self.set_enabled_layout(layout, False)
-        self.annotate_button.setEnabled(True)
         self.canvas.setEnabled(True)
         self.notify_message("Annotation mode")
         self.mpl_action_annotate = self.canvas.fig.canvas.mpl_connect("button_press_event", self.onclick_annotate)
