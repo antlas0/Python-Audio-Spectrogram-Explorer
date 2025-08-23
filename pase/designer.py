@@ -112,26 +112,32 @@ def populate_ui(parent):
     button_export_all_spectrograms.clicked.connect(parent.export_all_spectrograms)
 
     parent.annotate_button = QtWidgets.QPushButton("🖊️ Annotate")
+    parent.annotate_button.setToolTip("Write annotation work and select it with annotation checkbox. Then drag left click on a zone to annotate. Escape to discard, Enter to save to a file.")
     parent.annotate_button.setCheckable(False)
     parent.annotate_button.clicked.connect(parent.func_annotate)
 
     parent.load_annotations_button = QtWidgets.QPushButton("📁 Load annotations")
+    parent.load_annotations_button.setToolTip("Load annotations CSV files. To add new annotations, click on Annotate. New annotations will be appended into loaded file of corresponding spectrogram.")
     parent.load_annotations_button.setCheckable(False)
     parent.load_annotations_button.clicked.connect(parent.load_annotations)
 
     parent.draw_button = QtWidgets.QPushButton("🖌️ Draw")
+    parent.draw_button.setToolTip("Draw a polygon. Double click to add a point, Escape to discard, Enter to save into a file.")
     parent.draw_button.setCheckable(False)
     parent.draw_button.clicked.connect(parent.func_draw_shape)
 
     parent.load_drawing_button = QtWidgets.QPushButton("📁 Load drawing")
+    parent.load_drawing_button.setToolTip("Load drawing file. To add new drawings, click on Draw. New drawings will be added into loaded file of corresponding spectrogram.")
     parent.load_drawing_button.setCheckable(False)
     parent.load_drawing_button.clicked.connect(parent.load_drawing)
 
     parent.disp_all_button = QtWidgets.QPushButton("Display all")
+    parent.disp_all_button.setToolTip("Display both annotations and drawing created on a spectrogram, if exist.")
     parent.disp_all_button.setCheckable(False)
     parent.disp_all_button.clicked.connect(parent.display_all_artifacts)
 
     parent.clear_spectro_button = QtWidgets.QPushButton("🗑️ Clear")
+    parent.clear_spectro_button.setToolTip("Clear annotations and drawing from a spectrogram.")
     parent.clear_spectro_button.setCheckable(False)
     parent.clear_spectro_button.clicked.connect(parent.clear_spectrogram)
 
