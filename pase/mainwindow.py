@@ -39,6 +39,7 @@ from typing import List
 
 from .designer import populate_ui, MplCanvas
 from .resources import str2bool, InputData, AudioSample, FFTSample, MAX_LENGHT_SEC, LICENCE_STR
+from .version import APP_VERSION
 
 
 
@@ -101,7 +102,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def aboutfunc(self):
         dlg = QtWidgets.QMessageBox(self)
         dlg.setWindowTitle("About")
-        dlg.setText("Work by <a href=\"https://github.com/antlas0\">antlas0</a>,<br/>built on top of original development by <a href=\"https://github.com/sebastianmenze/Python-Audio-Spectrogram-Explorer\">sebastianmenze</a><br/><br/>Licence:<br/>" + LICENCE_STR)
+        dlg.setText(f"Version: {APP_VERSION}<br/><br/> Work by <a href=\"https://github.com/antlas0\">antlas0</a>,<br/>built on top of original development by <a href=\"https://github.com/sebastianmenze/Python-Audio-Spectrogram-Explorer\">sebastianmenze</a><br/><br/>Licence:<br/>" + LICENCE_STR)
         dlg.exec()
 
     def exitfunc(self):
