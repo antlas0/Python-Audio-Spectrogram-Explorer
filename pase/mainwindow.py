@@ -1704,6 +1704,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not file[0]:
             self.notify_message("Drawing loading aborted")
             return
+        self.load_drawing_file(file[0])
 
     def load_drawing_file(self, path:str):
         try:
