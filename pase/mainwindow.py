@@ -911,6 +911,9 @@ class MainWindow(QtWidgets.QMainWindow):
     #     print("done!!!")
 
     def export_automatic_detector(self):
+        if self._detectiondf is None or self._detectiondf.empty:
+            return
+
         if self._detectiondf.shape[0] > 0:
             savename = QtWidgets.QFileDialog.getSaveFileName(
                 self,
@@ -1091,6 +1094,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def plot_annotations(self):
+        if len(self._input_data) == 0:
+            return
+
         # plot annotations
         if self._input_data[self._filepointer].annotations is not None and not self._input_data[self._filepointer].annotations.empty:
             ix = (
@@ -1155,6 +1161,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.canvas.draw()
 
     def plot_spectrogram(self):
+        if len(self._input_data) == 0:
+            return
+
         if self._input_data[self._filepointer].fft_data is None \
             or self._input_data[self._filepointer].audio_data is None:
 
