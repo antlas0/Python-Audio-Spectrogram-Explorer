@@ -1473,7 +1473,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.notify_message("Annotation loading aborted")
             return
 
-        for annotation_file in file[0]:
+        self.load_annotations_files(file[0])
+
+    def load_annotations_files(self, files:list):
+        for annotation_file in files:
             try:
                 annotations = pd.read_csv(
                         annotation_file,
@@ -1702,9 +1705,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.notify_message("Drawing loading aborted")
             return
 
+    def load_drawing_file(self, path:str):
         try:
             drawing = pd.read_csv(
-                    file[0],
+                    path,
                     dtype = {
                         "Time_in_s": float,
                         "Frequency_in_Hz": float,
@@ -1712,20 +1716,20 @@ class MainWindow(QtWidgets.QMainWindow):
                     }
                 )
         except Exception as e:
-            self.notify_message(f"Drawing file {file[0]} malformed: {e}")
+            self.notify_message(f"Drawing file {path} malformed: {e}")
         else:
 
             if drawing.empty:
-                self.notify_message(f"Drawing file {file[0]} empty")
+                self.notify_message(f"Drawing file {path} empty")
                 return
 
             columns_to_check = ["Time_in_s", "Frequency_in_Hz", "audiofilename"]
             found_columns = [ x in drawing.columns for x in columns_to_check ]
             if not all(found_columns):
-                self.notify_message(f"Drawing file {file[0]} malformed")
+                self.notify_message(f"Drawing file {path} malformed")
                 return
 
-            self.notify_message(f"Opening drawing file {file[0]}")
+            self.notify_message(f"Opening drawing file {path}")
             self.open_audio_file(drawing["audiofilename"][0])
             self.plot_spectrogram()
             self._input_data[self._filepointer].drawing = drawing
