@@ -963,10 +963,10 @@ class MainWindow(QtWidgets.QMainWindow):
         full_path = self.filesview_model.filePath(index)
         if os.path.isfile(full_path):
             self.notify_message(f"Opening: {full_path}")
-            self.open_file(full_path)
+            self.open_audio_file(full_path)
             self.plot_spectrogram()
 
-    def open_file(self, path: str):
+    def open_audio_file(self, path: str):
         self.plotwindow_startsecond = float(self.t_length.text())
 
         self._detectiondf = pd.DataFrame([])
@@ -1125,8 +1125,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.plot_annotation_box(a)
 
     def plot_annotation_box(self, annotation_row):
-        # print(annotation_row.dtypes)
-        print(self._input_data[self._filepointer].annotations)
         print(annotation_row)
         x1 = annotation_row.iloc[0, 0]
         x2 = annotation_row.iloc[0, 1]
@@ -1135,8 +1133,6 @@ class MainWindow(QtWidgets.QMainWindow):
         c_label = annotation_row.iloc[0, 4]
 
         xt = pd.Series([x1, x2])
-        print(xt)
-        print(xt.dtype)
 
         # print(np.dtype(np.array(self._input_data[self._filepointer].date).astype('datetime64[ns]') ))
         tt = xt - np.array(self._input_data[self._filepointer].date).astype("datetime64[ns]")
@@ -1504,7 +1500,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     return
 
                 self.notify_message(f"Opening annotations file {annotation_file}")
-                self.open_file(annotations["audiofilename"][0])
+                self.open_audio_file(annotations["audiofilename"][0])
                 self.plot_spectrogram()
                 self._input_data[self._filepointer].annotations = annotations
                 self._input_data[self._filepointer].annotations_file = annotation_file
@@ -1730,7 +1726,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
 
             self.notify_message(f"Opening drawing file {file[0]}")
-            self.open_file(drawing["audiofilename"][0])
+            self.open_audio_file(drawing["audiofilename"][0])
             self.plot_spectrogram()
             self._input_data[self._filepointer].drawing = drawing
             self.plot_drawing()
