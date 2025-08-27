@@ -5,6 +5,7 @@
 > This is not the original PASE repository. This is a fork, which embeds customizations. For the original repository, refer to the initial forked repo. Some features maybe broken. WIP.
 
 ## How to launch
+Launch released AppImage or call the following code.
 ```bash
 python -m pip install -r requirements.txt
 python main.py
