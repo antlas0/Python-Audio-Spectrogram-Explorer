@@ -2,7 +2,7 @@
 
 
 > [!IMPORTANT]  
-> This is not the original PASE repository. This is a fork, which embeds customizations. For the original repository, refer to the initial forked repo.
+> This is not the original PASE repository. This is a fork, which embeds UI customizations. For the original repository, refer to the initial forked repo.
 
 ## How to launch
 Launch released AppImage (Linux) or call the following code.
